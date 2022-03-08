@@ -7,26 +7,25 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 
-public class MainActivity extends AppCompatActivity {
-    Button changeActBtn;
+public class Activity2 extends AppCompatActivity {
+    Button changeBackBtn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_2);
 
-        changeActBtn = (Button) findViewById(R.id.changeActBtn);
-        changeActBtn.setOnClickListener(new View.OnClickListener() {
+        changeBackBtn = (Button) findViewById(R.id.changeActBtn);
+        changeBackBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //Start intent
-                changeAct();
+                changeAct2();
             }
         });
     }
 
-    public void changeAct() {
-        Intent intent = new Intent(MainActivity.this, Activity2.class);
+    public void changeAct2() {
+        Intent intent = new Intent(Activity2.this, MainActivity.class);
         startActivity(intent);
     }
 }
