@@ -15,7 +15,7 @@ public class Activity2 extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_2);
 
-        changeBackBtn = (Button) findViewById(R.id.changeActBtn);
+        changeBackBtn = (Button) findViewById(R.id.changeBackActBtn);
         changeBackBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
