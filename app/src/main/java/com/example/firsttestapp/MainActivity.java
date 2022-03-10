@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -27,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
 
+
         changeActBtn = (Button) findViewById(R.id.changeActBtn);
         changeActBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -39,12 +41,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void modelViewer() {
-        Intent modelViewerIntent = new Intent(Intent.ACTION_VIEW);
         Intent sceneViewerIntent = new Intent(Intent.ACTION_VIEW);
-        sceneViewerIntent.setData(Uri.parse("https://arvr.google.com/scene-viewer/1.0?file=https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Avocado/glTF/Avocado.gltf"));
+        sceneViewerIntent.setData(Uri.parse("https://arvr.google.com/scene-viewer/1.0?file=https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/Playground/scenes/Alien/Alien.gltf"));
         sceneViewerIntent.setPackage("com.google.android.googlequicksearchbox");
         startActivity(sceneViewerIntent);
-
     }
 
     public void changeAct() {
