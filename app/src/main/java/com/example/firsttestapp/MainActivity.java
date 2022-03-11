@@ -15,40 +15,60 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.material.textfield.TextInputEditText;
+
 import java.util.ArrayList;
 import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity {
     Button changeActBtn;
+    TextInputEditText modelLinkText;
+    static final String ALIEN_LINK = "https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/Playground/scenes/Alien/Alien.gltf";
+    static final String AVOCADO_LINK = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Avocado/glTF/Avocado.gltf";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-
+        modelLinkText = findViewById(R.id.modelLinkInput);
 
         changeActBtn = (Button) findViewById(R.id.changeActBtn);
         changeActBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //Start intent
-                //changeAct();
-                modelViewer();
+                if(modelLinkText.getText().toString().matches("")) {
+                    Toast toast = Toast.makeText(getApplicationContext(), "Du måste välja en modell", Toast.LENGTH_SHORT);
+                    toast.show();
+                    return;
+
+                } else {
+                    modelViewer();
+                }
             }
         });
     }
 
     public void modelViewer() {
-        Intent sceneViewerIntent = new Intent(Intent.ACTION_VIEW);
-        sceneViewerIntent.setData(Uri.parse("https://arvr.google.com/scene-viewer/1.0?file=https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/Playground/scenes/Alien/Alien.gltf"));
-        sceneViewerIntent.setPackage("com.google.android.googlequicksearchbox");
-        startActivity(sceneViewerIntent);
-    }
+        String intentLink = "https://arvr.google.com/scene-viewer/1.0?file=";
+        String inputFile = modelLinkText.getText().toString();
+        String totalLink = intentLink + inputFile;
 
-    public void changeAct() {
-        Intent intent = new Intent(MainActivity.this, Activity2.class);
-        startActivity(intent);
+        switch (inputFile) {
+            case "Alien":
+                totalLink = intentLink + ALIEN_LINK;
+                break;
+            case "Avocado":
+                totalLink = intentLink + AVOCADO_LINK;
+                break;
+        }
+
+        try {
+            Intent sceneViewerIntent = new Intent(Intent.ACTION_VIEW);
+            sceneViewerIntent.setData(Uri.parse(totalLink));
+            sceneViewerIntent.setPackage("com.google.android.googlequicksearchbox");
+            startActivity(sceneViewerIntent);
+
+        } catch (Exception e) { }
     }
 }

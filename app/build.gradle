@@ -38,6 +38,4 @@ dependencies {
 
     // Provides ARCore Session and related resources.
     implementation 'com.google.ar:core:1.15.0'
-    // Alternatively, use ArSceneView without the UX dependency.
-    implementation 'com.google.ar.sceneform:core:1.15.0'
 }
