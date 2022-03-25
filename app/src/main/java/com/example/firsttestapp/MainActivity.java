@@ -172,12 +172,12 @@ public class MainActivity extends AppCompatActivity implements Scene.OnUpdateLis
         for(AugmentedImage img : updateAugmentedImg) {
             if(img.getTrackingState() == TrackingState.TRACKING) {
                 if(img.getName().equals("flower")) {
-                    Toast.makeText(getApplicationContext(), "Seeing tracked image", Toast.LENGTH_SHORT).show();
-                    /*
-                    MyArNode node = new MyArNode(this, R.raw.export_plan_3_v5);
+                    //Toast.makeText(getApplicationContext(), "Seeing tracked image", Toast.LENGTH_SHORT).show();
+
+                    MyArNode node = new MyArNode(this, R.raw.alien);
                     node.setImg(img);
                     arView.getScene().addChild(node);
-                     */
+
                 }
             }
         }
