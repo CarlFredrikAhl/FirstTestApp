@@ -70,18 +70,13 @@ import java.util.Collection;
 import java.util.List;
 
 
-public class MainActivity extends AppCompatActivity implements FragmentOnAttachListener,
-        BaseArFragment.OnSessionConfigurationListener,
-        BaseArFragment.OnTapArPlaneListener,
-        ArFragment.OnViewCreatedListener {
+public class MainActivity extends AppCompatActivity {
     //Button changeActBtn;
     //TextInputEditText modelLinkText;
-    //static final String ALIEN_LINK = "https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/Playground/scenes/Alien/Alien.gltf";
-    //static final String AVOCADO_LINK = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Avocado/glTF/Avocado.gltf";
+    static final String ALIEN_LINK = "https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/Playground/scenes/Alien/Alien.gltf";
+    static final String AVOCADO_LINK = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Avocado/glTF/Avocado.gltf";
 
     private ArFragment arFragment;
-    private Renderable model;
-    private ViewRenderable viewRenderable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,79 +84,28 @@ public class MainActivity extends AppCompatActivity implements FragmentOnAttachL
         setContentView(R.layout.activity_main);
         //modelLinkText = findViewById(R.id.modelLinkInput);
 
-        getSupportFragmentManager().addFragmentOnAttachListener(this);
+        arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
+        arFragment.setOnTapArPlaneListener((hitResult, plane, motionEvent) -> {
 
-        if(savedInstanceState == null) {
-            if (Sceneform.isSupported(this)) {
-                getSupportFragmentManager().beginTransaction()
-                        .add(R.id.arFragment, ArFragment.class, null)
-                        .commit();
-            }
-        }
+            Anchor anchor = hitResult.createAnchor();
+            ModelRenderable.builder()
+                    .setSource(this, Uri.parse("https://storage.googleapis.com/ar-answers-in-search-models/static/Tiger/model.glb"))
+                    .setIsFilamentGltf(true)
+                    .setAsyncLoadEnabled(true)
+                    .build()
+                    .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchor));
 
-        loadModels();
+        });
     }
 
-    @Override
-    public void onAttachFragment(@NonNull FragmentManager fragmentManager, @NonNull Fragment fragment) {
+    private void addModelToScene(ModelRenderable model, Anchor anchor) {
 
-        if(fragment.getId() == R.id.arFragment) {
-            arFragment = (ArFragment) fragment;
-            arFragment.setOnSessionConfigurationListener(this);
-            arFragment.setOnViewCreatedListener(this);
-            arFragment.setOnTapArPlaneListener(this);
-        }
-    }
+        AnchorNode node = new AnchorNode(anchor);
+        TransformableNode transformableNode = new TransformableNode(arFragment.getTransformationSystem());
+        transformableNode.setParent(node);
+        transformableNode.setRenderable(model);
 
-    @Override
-    public void onViewCreated(ArSceneView arSceneView) {
-        arFragment.setOnViewCreatedListener(null);
-
-        arSceneView.setFrameRateFactor(SceneView.FrameRate.FULL);
-    }
-
-    @Override
-    public void onSessionConfiguration(Session session, Config config) {
-        if(session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
-            config.setDepthMode(Config.DepthMode.AUTOMATIC);
-        }
-    }
-
-    public void loadModels() {
-        WeakReference<MainActivity> weakActivity = new WeakReference<>(this);
-        ModelRenderable.builder()
-                .setSource(this, Uri.parse("https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Avocado/glTF/Avocado.gltf"))
-                .setIsFilamentGltf(true)
-                .setAsyncLoadEnabled(true)
-                .build()
-                .thenAccept(model -> {
-                    MainActivity activity = weakActivity.get();
-                    if(activity == null) {
-                        activity.model = model;
-                    }
-                })
-                .exceptionally(throwable -> {
-                    Toast.makeText(this, "Unable to laod model", Toast.LENGTH_LONG).show();
-                    return null;
-                });
-    }
-
-    @Override
-    public void onTapPlane(HitResult hitResult, Plane plane, MotionEvent motionEvent) {
-
-        if(model == null) {
-            Toast.makeText(this, "Loading...", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        //Anchors
-        Anchor anchor = hitResult.createAnchor();
-        AnchorNode anchorNode = new AnchorNode(anchor);
-        anchorNode.setParent(arFragment.getArSceneView().getScene());
-
-        TransformableNode model = new TransformableNode(arFragment.getTransformationSystem());
-        model.setParent(anchorNode);
-        model.setRenderable(this.model).animate(true).start();
-        model.select();
+        arFragment.getArSceneView().getScene().addChild(node);
+        transformableNode.select();
     }
 }
