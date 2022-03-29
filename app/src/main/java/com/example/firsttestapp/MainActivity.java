@@ -70,7 +70,7 @@ import java.util.Collection;
 import java.util.List;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements Scene.OnUpdateListener {
     //Button changeActBtn;
     //TextInputEditText modelLinkText;
     static final String ALIEN_LINK = "https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/Playground/scenes/Alien/Alien.gltf";
@@ -78,11 +78,16 @@ public class MainActivity extends AppCompatActivity {
 
     private ArFragment arFragment;
 
+    private Session session;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         //modelLinkText = findViewById(R.id.modelLinkInput);
+
+        setupSesh();
+        configSesh();
 
         arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
         arFragment.setOnTapArPlaneListener((hitResult, plane, motionEvent) -> {
@@ -98,6 +103,15 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void setupSesh() {
+        if(session == null) {
+            try {
+                session = new Session(this);
+            } catch (Exception e) {
+            }
+        }
+    }
+
     private void addModelToScene(ModelRenderable model, Anchor anchor) {
 
         AnchorNode node = new AnchorNode(anchor);
@@ -107,5 +121,51 @@ public class MainActivity extends AppCompatActivity {
 
         arFragment.getArSceneView().getScene().addChild(node);
         transformableNode.select();
+    }
+
+    private void configSesh() {
+        Config config = new Config(session);
+
+        //If buildDatabase failed
+        if(!buildDatabase(config)) {
+            Toast.makeText(this, "Error creating database", Toast.LENGTH_SHORT).show();
+        }
+
+        config.setUpdateMode(Config.UpdateMode.LATEST_CAMERA_IMAGE);
+        session.configure(config);
+    }
+
+    private boolean buildDatabase(Config config) {
+        AugmentedImageDatabase imgDatabase;
+        Bitmap bitmap = loadImg();
+
+        if(bitmap == null) {
+            return false;
+        }
+
+        imgDatabase = new AugmentedImageDatabase(session);
+        imgDatabase.addImage("flower", bitmap);
+        config.setAugmentedImageDatabase(imgDatabase);
+        return true;
+    }
+
+    private Bitmap loadImg() {
+        try {
+            InputStream is = getAssets().open("lotus.jpg");
+            return BitmapFactory.decodeStream(is);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return  null;
+    }
+
+    @Override
+    public void onUpdate(FrameTime frameTime) {
+        //Set position and rotation of model to match the image in the database
+
+        //Current frame
+        Frame frame = arFragment.getArSceneView().getArFrame();
+        Collection<AugmentedImage> updateAugmentedImage = frame.getUpdatedTrackables(AugmentedImage.class);
     }
 }
