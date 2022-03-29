@@ -1,6 +1,11 @@
 package com.example.firsttestapp;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentContainerView;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentOnAttachListener;
 
 import android.Manifest;
 import android.content.ActivityNotFoundException;
@@ -12,6 +17,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.KeyCharacterMap;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
@@ -21,11 +27,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.ar.core.Anchor;
 import com.google.ar.core.ArCoreApk;
 import com.google.ar.core.AugmentedImage;
 import com.google.ar.core.AugmentedImageDatabase;
 import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
+import com.google.ar.core.HitResult;
+import com.google.ar.core.Plane;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
 import com.google.ar.core.exceptions.CameraNotAvailableException;
@@ -34,9 +43,18 @@ import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException;
 import com.google.ar.core.exceptions.UnavailableException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
+import com.google.ar.sceneform.AnchorNode;
 import com.google.ar.sceneform.ArSceneView;
 import com.google.ar.sceneform.FrameTime;
 import com.google.ar.sceneform.Scene;
+import com.google.ar.sceneform.SceneView;
+import com.google.ar.sceneform.Sceneform;
+import com.google.ar.sceneform.rendering.ModelRenderable;
+import com.google.ar.sceneform.rendering.Renderable;
+import com.google.ar.sceneform.rendering.ViewRenderable;
+import com.google.ar.sceneform.ux.ArFragment;
+import com.google.ar.sceneform.ux.BaseArFragment;
+import com.google.ar.sceneform.ux.TransformableNode;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
@@ -46,21 +64,24 @@ import com.karumi.dexter.listener.single.PermissionListener;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 
-public class MainActivity extends AppCompatActivity implements Scene.OnUpdateListener {
+public class MainActivity extends AppCompatActivity implements FragmentOnAttachListener,
+        BaseArFragment.OnSessionConfigurationListener,
+        BaseArFragment.OnTapArPlaneListener,
+        ArFragment.OnViewCreatedListener {
     //Button changeActBtn;
     //TextInputEditText modelLinkText;
     //static final String ALIEN_LINK = "https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/Playground/scenes/Alien/Alien.gltf";
     //static final String AVOCADO_LINK = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Avocado/glTF/Avocado.gltf";
 
-    //Session session;
-    private ArSceneView arView;
-    private Session session;
-    private boolean shouldConfigureSession = false;
+    private ArFragment arFragment;
+    private Renderable model;
+    private ViewRenderable viewRenderable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,151 +89,79 @@ public class MainActivity extends AppCompatActivity implements Scene.OnUpdateLis
         setContentView(R.layout.activity_main);
         //modelLinkText = findViewById(R.id.modelLinkInput);
 
-        arView = (ArSceneView) findViewById(R.id.arView);
+        getSupportFragmentManager().addFragmentOnAttachListener(this);
 
-        Dexter.withActivity(this)
-                .withPermission(Manifest.permission.CAMERA)
-                .withListener(new PermissionListener() {
-                    @Override
-                    public void onPermissionGranted(PermissionGrantedResponse response) {
-                        setupSesh();
-                    }
-
-                    @Override
-                    public void onPermissionDenied(PermissionDeniedResponse response) {
-                        Toast.makeText(MainActivity.this, "Permission needs camera", Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
-
-                    }
-                }).check();
-
-        initSceneView();
-    }
-
-    private void initSceneView() {
-        arView.getScene().addOnUpdateListener(this);
-    }
-
-    private void setupSesh() {
-        if(session == null) {
-            try {
-                session = new Session(this);
-            } catch (UnavailableArcoreNotInstalledException e) {
-                e.printStackTrace();
-            } catch (UnavailableApkTooOldException e) {
-                e.printStackTrace();
-            } catch (UnavailableSdkTooOldException e) {
-                e.printStackTrace();
-            } catch (UnavailableDeviceNotCompatibleException e) {
-                e.printStackTrace();
+        if(savedInstanceState == null) {
+            if (Sceneform.isSupported(this)) {
+                getSupportFragmentManager().beginTransaction()
+                        .add(R.id.arFragment, ArFragment.class, null)
+                        .commit();
             }
-            shouldConfigureSession = true;
         }
 
-        if(shouldConfigureSession) {
-            configSesh();
-            shouldConfigureSession = false;
-            arView.setupSession(session);
-        }
+        loadModels();
+    }
 
-        try {
-            session.resume();
-            arView.resume();
-        } catch (CameraNotAvailableException e) {
-            e.printStackTrace();
-            session = null;
+    @Override
+    public void onAttachFragment(@NonNull FragmentManager fragmentManager, @NonNull Fragment fragment) {
+
+        if(fragment.getId() == R.id.arFragment) {
+            arFragment = (ArFragment) fragment;
+            arFragment.setOnSessionConfigurationListener(this);
+            arFragment.setOnViewCreatedListener(this);
+            arFragment.setOnTapArPlaneListener(this);
+        }
+    }
+
+    @Override
+    public void onViewCreated(ArSceneView arSceneView) {
+        arFragment.setOnViewCreatedListener(null);
+
+        arSceneView.setFrameRateFactor(SceneView.FrameRate.FULL);
+    }
+
+    @Override
+    public void onSessionConfiguration(Session session, Config config) {
+        if(session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
+            config.setDepthMode(Config.DepthMode.AUTOMATIC);
+        }
+    }
+
+    public void loadModels() {
+        WeakReference<MainActivity> weakActivity = new WeakReference<>(this);
+        ModelRenderable.builder()
+                .setSource(this, Uri.parse("https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Avocado/glTF/Avocado.gltf"))
+                .setIsFilamentGltf(true)
+                .setAsyncLoadEnabled(true)
+                .build()
+                .thenAccept(model -> {
+                    MainActivity activity = weakActivity.get();
+                    if(activity == null) {
+                        activity.model = model;
+                    }
+                })
+                .exceptionally(throwable -> {
+                    Toast.makeText(this, "Unable to laod model", Toast.LENGTH_LONG).show();
+                    return null;
+                });
+    }
+
+    @Override
+    public void onTapPlane(HitResult hitResult, Plane plane, MotionEvent motionEvent) {
+
+        if(model == null) {
+            Toast.makeText(this, "Loading...", Toast.LENGTH_SHORT).show();
             return;
         }
 
-    }
+        //Anchors
+        Anchor anchor = hitResult.createAnchor();
+        AnchorNode anchorNode = new AnchorNode(anchor);
+        anchorNode.setParent(arFragment.getArSceneView().getScene());
 
-    private void configSesh() {
-        Config config = new Config(session);
-
-        if(!buildDatabase(config)) {
-            Toast.makeText(this, "Error database", Toast.LENGTH_SHORT).show();
-        }
-        config.setUpdateMode(Config.UpdateMode.LATEST_CAMERA_IMAGE);
-        session.configure(config);
-    }
-
-    private boolean buildDatabase(Config config) {
-
-        AugmentedImageDatabase augmentedImageDatabase;
-        Bitmap bitmap = loadImg();
-        if(bitmap == null) {
-            return false;
-        }
-
-        augmentedImageDatabase = new AugmentedImageDatabase(session);
-        augmentedImageDatabase.addImage("flower", bitmap);
-        config.setAugmentedImageDatabase(augmentedImageDatabase);
-        return true;
-    }
-
-    private Bitmap loadImg() {
-        try {
-            InputStream is = getAssets().open("lotus.jpg");
-            return BitmapFactory.decodeStream(is);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return  null;
-    }
-
-    @Override
-    public void onUpdate(FrameTime frameTime) {
-        Frame frame = arView.getArFrame();
-        Collection<AugmentedImage> updateAugmentedImg = frame.getUpdatedTrackables(AugmentedImage.class);
-
-        for(AugmentedImage img : updateAugmentedImg) {
-            if(img.getTrackingState() == TrackingState.TRACKING) {
-                if(img.getName().equals("flower")) {
-                    //Toast.makeText(getApplicationContext(), "Seeing tracked image", Toast.LENGTH_SHORT).show();
-
-                    MyArNode node = new MyArNode(this, R.raw.alien);
-                    node.setImg(img);
-                    arView.getScene().addChild(node);
-
-                }
-            }
-        }
-    }
-
-    @Override
-    protected  void onResume() {
-        super.onResume();
-        Dexter.withActivity(this)
-                .withPermission(Manifest.permission.CAMERA)
-                .withListener(new PermissionListener() {
-                    @Override
-                    public void onPermissionGranted(PermissionGrantedResponse response) {
-                        setupSesh();
-                    }
-
-                    @Override
-                    public void onPermissionDenied(PermissionDeniedResponse response) {
-                        Toast.makeText(MainActivity.this, "Permission needs camera", Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
-
-                    }
-                }).check();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-
-        if(session != null) {
-            arView.pause();
-            session.pause();
-        }
+        TransformableNode model = new TransformableNode(arFragment.getTransformationSystem());
+        model.setParent(anchorNode);
+        model.setRenderable(this.model).animate(true).start();
+        model.select();
     }
 }
