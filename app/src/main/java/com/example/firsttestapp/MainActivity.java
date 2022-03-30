@@ -35,6 +35,7 @@ import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
+import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
 import com.google.ar.core.exceptions.CameraNotAvailableException;
@@ -46,9 +47,12 @@ import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.sceneform.AnchorNode;
 import com.google.ar.sceneform.ArSceneView;
 import com.google.ar.sceneform.FrameTime;
+import com.google.ar.sceneform.Node;
 import com.google.ar.sceneform.Scene;
 import com.google.ar.sceneform.SceneView;
 import com.google.ar.sceneform.Sceneform;
+import com.google.ar.sceneform.math.Quaternion;
+import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.ModelRenderable;
 import com.google.ar.sceneform.rendering.Renderable;
 import com.google.ar.sceneform.rendering.ViewRenderable;
@@ -80,11 +84,18 @@ public class MainActivity extends AppCompatActivity {
 
     private Session session;
 
+    private boolean modelLoaded;
+    private boolean notifyImgTracked;
+
+    private ModelRenderable model;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         //modelLinkText = findViewById(R.id.modelLinkInput);
+        modelLoaded = false;
+        notifyImgTracked = false;
 
         arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
         arFragment.setOnTapArPlaneListener((hitResult, plane, motionEvent) -> {
@@ -110,7 +121,32 @@ public class MainActivity extends AppCompatActivity {
                 for(AugmentedImage img : updateAugmentedImg) {
                     if(img.getTrackingState() == TrackingState.TRACKING) {
                         if(img.getName().equals("flower")) {
-                            Toast.makeText(getApplicationContext(), "Seeing tracked image", Toast.LENGTH_SHORT).show();
+                            if(!notifyImgTracked) {
+                                Toast.makeText(getApplicationContext(), "Seeing tracked image", Toast.LENGTH_SHORT).show();
+                                notifyImgTracked = true;
+                            }
+                            //Load model
+
+                            AnchorNode anchorNode = new AnchorNode(img.createAnchor(img.getCenterPose()));
+                            Node node = new Node();
+                            Pose pose = Pose.makeTranslation(0.0f, 0.0f, 0.25f);
+
+                            node.setParent(anchorNode);
+                            node.setLocalPosition(new Vector3(pose.tx(), pose.ty(), pose.tz()));
+                            //node.setLocalRotation(new Quaternion(pose.qx(), pose.qy(), pose.qz(), pose.qw()));
+
+                            if(!modelLoaded) {
+                                ModelRenderable.builder()
+                                        .setSource(this, Uri.parse("https://storage.googleapis.com/ar-answers-in-search-models/static/Tiger/model.glb"))
+                                        .setIsFilamentGltf(true)
+                                        .setAsyncLoadEnabled(true)
+                                        .build()
+                                        .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchorNode));
+
+                                modelLoaded = true;
+                            }
+
+                            break;
                         }
                     }
                 }
@@ -129,8 +165,22 @@ public class MainActivity extends AppCompatActivity {
         arFragment.getArSceneView().setSession(session);
     }
 
+    private void addModelToScene(ModelRenderable model) {
+        this.model = model;
+    }
+
     private void addModelToScene(ModelRenderable model, Anchor anchor) {
         AnchorNode node = new AnchorNode(anchor);
+        TransformableNode transformableNode = new TransformableNode(arFragment.getTransformationSystem());
+        transformableNode.setLocalScale(new Vector3(0.1f, 0.1f, 0.1f));
+        transformableNode.setParent(node);
+        transformableNode.setRenderable(model);
+
+        arFragment.getArSceneView().getScene().addChild(node);
+        transformableNode.select();
+    }
+
+    private void addModelToScene(ModelRenderable model, AnchorNode node) {
         TransformableNode transformableNode = new TransformableNode(arFragment.getTransformationSystem());
         transformableNode.setParent(node);
         transformableNode.setRenderable(model);
