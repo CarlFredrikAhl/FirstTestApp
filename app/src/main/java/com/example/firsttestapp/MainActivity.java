@@ -128,11 +128,14 @@ public class MainActivity extends AppCompatActivity {
                             //Load model
 
                             AnchorNode anchorNode = new AnchorNode(img.createAnchor(img.getCenterPose()));
-                            Node node = new Node();
-                            Pose pose = Pose.makeTranslation(0.0f, 0.0f, 0.25f);
+                            //Node node = new Node();
+                            Pose pose = Pose.makeTranslation(0.0f, 0.0f, 0f);
 
-                            node.setParent(anchorNode);
-                            node.setLocalPosition(new Vector3(pose.tx(), pose.ty(), pose.tz()));
+                            //node.setParent(anchorNode);
+                            anchorNode.setLocalPosition(new Vector3(pose.tx(), pose.ty(), pose.tz()));
+                            anchorNode.setLocalScale(new Vector3(0.1f, 0.1f, 0.1f));
+                            //node.setLocalPosition(new Vector3(pose.tx(), pose.ty(), pose.tz()));
+                            //node.setLocalScale(new Vector3(0.1f, 0.1f, 0.1f));
                             //node.setLocalRotation(new Quaternion(pose.qx(), pose.qy(), pose.qz(), pose.qw()));
 
                             if(!modelLoaded) {
@@ -182,6 +185,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void addModelToScene(ModelRenderable model, AnchorNode node) {
         TransformableNode transformableNode = new TransformableNode(arFragment.getTransformationSystem());
+        transformableNode.setLocalScale(new Vector3(0.1f, 0.1f, 0.1f));
         transformableNode.setParent(node);
         transformableNode.setRenderable(model);
 
