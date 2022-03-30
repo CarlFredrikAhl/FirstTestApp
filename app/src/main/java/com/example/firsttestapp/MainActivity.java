@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean modelLoaded;
     private boolean notifyImgTracked;
 
-    private ModelRenderable model;
+    private Renderable model;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
         notifyImgTracked = false;
 
         arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
+
         arFragment.setOnTapArPlaneListener((hitResult, plane, motionEvent) -> {
 
             Anchor anchor = hitResult.createAnchor();
@@ -215,6 +216,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addModelToScene(ModelRenderable model, AnchorNode node) {
+        TransformableNode transformableNode = new TransformableNode(arFragment.getTransformationSystem());
+        transformableNode.setLocalScale(new Vector3(0.1f, 0.1f, 0.1f));
+        transformableNode.setParent(node);
+        transformableNode.setRenderable(model).animate(true).start();
+
+        arFragment.getArSceneView().getScene().addChild(node);
+        transformableNode.select();
+    }
+
+    private void addModelToScene(Renderable model, AnchorNode node) {
         TransformableNode transformableNode = new TransformableNode(arFragment.getTransformationSystem());
         transformableNode.setLocalScale(new Vector3(0.1f, 0.1f, 0.1f));
         transformableNode.setParent(node);
