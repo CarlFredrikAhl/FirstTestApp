@@ -70,7 +70,7 @@ import java.util.Collection;
 import java.util.List;
 
 
-public class MainActivity extends AppCompatActivity implements Scene.OnUpdateListener {
+public class MainActivity extends AppCompatActivity {
     //Button changeActBtn;
     //TextInputEditText modelLinkText;
     static final String ALIEN_LINK = "https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/Playground/scenes/Alien/Alien.gltf";
@@ -86,9 +86,6 @@ public class MainActivity extends AppCompatActivity implements Scene.OnUpdateLis
         setContentView(R.layout.activity_main);
         //modelLinkText = findViewById(R.id.modelLinkInput);
 
-        setupSesh();
-        configSesh();
-
         arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.arFragment);
         arFragment.setOnTapArPlaneListener((hitResult, plane, motionEvent) -> {
 
@@ -101,6 +98,24 @@ public class MainActivity extends AppCompatActivity implements Scene.OnUpdateLis
                     .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchor));
 
         });
+
+        //Wait for scene view to be ready then add the update listener
+        arFragment.setOnViewCreatedListener(arSceneView -> {
+            setupSesh();
+            arFragment.getArSceneView().getScene().addOnUpdateListener(frameTime -> {
+                //Toast.makeText(getApplicationContext(), "Update loop", Toast.LENGTH_SHORT).show();
+                Frame frame = arFragment.getArSceneView().getArFrame();
+                Collection<AugmentedImage> updateAugmentedImg = frame.getUpdatedTrackables(AugmentedImage.class);
+
+                for(AugmentedImage img : updateAugmentedImg) {
+                    if(img.getTrackingState() == TrackingState.TRACKING) {
+                        if(img.getName().equals("flower")) {
+                            Toast.makeText(getApplicationContext(), "Seeing tracked image", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+            });
+        });
     }
 
     private void setupSesh() {
@@ -110,10 +125,11 @@ public class MainActivity extends AppCompatActivity implements Scene.OnUpdateLis
             } catch (Exception e) {
             }
         }
+        configSesh();
+        arFragment.getArSceneView().setSession(session);
     }
 
     private void addModelToScene(ModelRenderable model, Anchor anchor) {
-
         AnchorNode node = new AnchorNode(anchor);
         TransformableNode transformableNode = new TransformableNode(arFragment.getTransformationSystem());
         transformableNode.setParent(node);
@@ -158,14 +174,5 @@ public class MainActivity extends AppCompatActivity implements Scene.OnUpdateLis
         }
 
         return  null;
-    }
-
-    @Override
-    public void onUpdate(FrameTime frameTime) {
-        //Set position and rotation of model to match the image in the database
-
-        //Current frame
-        Frame frame = arFragment.getArSceneView().getArFrame();
-        Collection<AugmentedImage> updateAugmentedImage = frame.getUpdatedTrackables(AugmentedImage.class);
     }
 }
