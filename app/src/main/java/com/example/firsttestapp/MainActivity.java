@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
 
             Anchor anchor = hitResult.createAnchor();
             ModelRenderable.builder()
-                    .setSource(this, Uri.parse("https://storage.googleapis.com/ar-answers-in-search-models/static/Tiger/model.glb"))
+                    .setSource(this, R.raw.alien)
                     .setIsFilamentGltf(true)
                     .setAsyncLoadEnabled(true)
                     .build()
@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
 
                 for(AugmentedImage img : updateAugmentedImg) {
                     if(img.getTrackingState() == TrackingState.TRACKING) {
-                        if(img.getName().equals("flower")) {
+                        if(img.getName().equals("lion")) {
                             if(!notifyImgTracked) {
                                 Toast.makeText(getApplicationContext(), "Seeing tracked image", Toast.LENGTH_SHORT).show();
                                 notifyImgTracked = true;
@@ -129,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
 
                             AnchorNode anchorNode = new AnchorNode(img.createAnchor(img.getCenterPose()));
                             //Node node = new Node();
-                            Pose pose = Pose.makeTranslation(0.0f, 0.0f, 0f);
+                            Pose pose = Pose.makeTranslation(0.0f, 0.0f, 0.25f);
 
                             //node.setParent(anchorNode);
                             anchorNode.setLocalPosition(new Vector3(pose.tx(), pose.ty(), pose.tz()));
@@ -141,6 +141,37 @@ public class MainActivity extends AppCompatActivity {
                             if(!modelLoaded) {
                                 ModelRenderable.builder()
                                         .setSource(this, Uri.parse("https://storage.googleapis.com/ar-answers-in-search-models/static/Tiger/model.glb"))
+                                        .setIsFilamentGltf(true)
+                                        .setAsyncLoadEnabled(true)
+                                        .build()
+                                        .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchorNode));
+
+                                modelLoaded = true;
+                            }
+
+                            break;
+
+                        } else if(img.getName().equals("bee")) {
+                            if(!notifyImgTracked) {
+                                Toast.makeText(getApplicationContext(), "Seeing tracked image", Toast.LENGTH_SHORT).show();
+                                notifyImgTracked = true;
+                            }
+                            //Load model
+
+                            AnchorNode anchorNode = new AnchorNode(img.createAnchor(img.getCenterPose()));
+                            //Node node = new Node();
+                            Pose pose = Pose.makeTranslation(0.0f, 0.0f, 0.25f);
+
+                            //node.setParent(anchorNode);
+                            anchorNode.setLocalPosition(new Vector3(pose.tx(), pose.ty(), pose.tz()));
+                            anchorNode.setLocalScale(new Vector3(0.01f, 0.011f, 0.01f));
+                            //node.setLocalPosition(new Vector3(pose.tx(), pose.ty(), pose.tz()));
+                            //node.setLocalScale(new Vector3(0.1f, 0.1f, 0.1f));
+                            //node.setLocalRotation(new Quaternion(pose.qx(), pose.qy(), pose.qz(), pose.qw()));
+
+                            if(!modelLoaded) {
+                                ModelRenderable.builder()
+                                        .setSource(this, R.raw.bee)
                                         .setIsFilamentGltf(true)
                                         .setAsyncLoadEnabled(true)
                                         .build()
@@ -187,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
         TransformableNode transformableNode = new TransformableNode(arFragment.getTransformationSystem());
         transformableNode.setLocalScale(new Vector3(0.1f, 0.1f, 0.1f));
         transformableNode.setParent(node);
-        transformableNode.setRenderable(model);
+        transformableNode.setRenderable(model).animate(true).start();
 
         arFragment.getArSceneView().getScene().addChild(node);
         transformableNode.select();
@@ -207,21 +238,30 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean buildDatabase(Config config) {
         AugmentedImageDatabase imgDatabase;
-        Bitmap bitmap = loadImg();
 
-        if(bitmap == null) {
-            return false;
+        Bitmap[] bitmaps = new Bitmap[] {
+                loadImg("lotus.jpg"),
+                loadImg("bee_qr_code.jpeg"),
+                loadImg("lion_qr_code.jpeg")
+        };
+
+        for(Bitmap bitmap : bitmaps) {
+            if(bitmap == null) {
+                return false;
+            }
         }
 
         imgDatabase = new AugmentedImageDatabase(session);
-        imgDatabase.addImage("flower", bitmap);
+        imgDatabase.addImage("flower", bitmaps[0]);
+        imgDatabase.addImage("bee", bitmaps[1]);
+        imgDatabase.addImage("lion", bitmaps[2]);
         config.setAugmentedImageDatabase(imgDatabase);
         return true;
     }
 
-    private Bitmap loadImg() {
+    private Bitmap loadImg(String img) {
         try {
-            InputStream is = getAssets().open("lotus.jpg");
+            InputStream is = getAssets().open(img);
             return BitmapFactory.decodeStream(is);
         } catch (IOException e) {
             e.printStackTrace();
