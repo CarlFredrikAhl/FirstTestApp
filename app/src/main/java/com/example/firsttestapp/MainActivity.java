@@ -70,6 +70,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Vector;
 
 
 public class MainActivity extends AppCompatActivity implements
@@ -106,7 +107,9 @@ public class MainActivity extends AppCompatActivity implements
         Bitmap[] bitmaps = new Bitmap[] {
                 loadImg("lotus.jpg"),
                 loadImg("bee_qr_code.jpeg"),
-                loadImg("lion_qr_code.jpeg")
+                loadImg("lion_qr_code.jpeg"),
+                loadImg("building_0_qr_code.jpeg"),
+                loadImg("small_building_qr_code.jpeg")
         };
 
         for(Bitmap bitmap : bitmaps) {
@@ -119,6 +122,9 @@ public class MainActivity extends AppCompatActivity implements
         imgDatabase.addImage("flower", bitmaps[0]);
         imgDatabase.addImage("bee", bitmaps[1]);
         imgDatabase.addImage("lion", bitmaps[2]);
+        imgDatabase.addImage("building_0", bitmaps[3]);
+        imgDatabase.addImage("small_building", bitmaps[4]);
+
         config.setAugmentedImageDatabase(imgDatabase);
         return true;
     }
@@ -134,14 +140,14 @@ public class MainActivity extends AppCompatActivity implements
         return  null;
     }
 
-    private void addModelToScene(ModelRenderable model, Anchor anchor) {
+    private void addModelToScene(ModelRenderable model, Anchor anchor, Vector3 scale) {
 
         AnchorNode node = new AnchorNode(anchor);
 
         Pose pose = Pose.makeTranslation(0.0f, 0.0f, 0.25f);
 
         node.setLocalPosition(new Vector3(pose.tx(), pose.ty(), pose.tz()));
-        node.setLocalScale(new Vector3(0.1f, 0.1f, 0.1f));
+        node.setLocalScale(scale);
 
         TransformableNode transformableNode = new TransformableNode(arFragment.getTransformationSystem());
         transformableNode.setParent(node);
@@ -178,20 +184,23 @@ public class MainActivity extends AppCompatActivity implements
                 .setIsFilamentGltf(true)
                 .setAsyncLoadEnabled(true)
                 .build()
-                .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchor));
+                .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchor, new Vector3(0.1f, 0.1f, 0.1f)));
     }
 
     @Override
     public void onAugmentedImageTrackingUpdate(AugmentedImage augmentedImage) {
         if(augmentedImage.getTrackingState() == TrackingState.TRACKING) {
+
+            Anchor anchor;
+
             switch (augmentedImage.getName()) {
                 case "lion":
                     if (!notifyImgTracked){
-                        Toast.makeText(getApplicationContext(), "Lion QR", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), "Lejon QR", Toast.LENGTH_SHORT).show();
                         notifyImgTracked = true;
                     }
 
-                    Anchor anchor = augmentedImage.createAnchor(augmentedImage.getCenterPose());
+                    anchor = augmentedImage.createAnchor(augmentedImage.getCenterPose());
 
                     if(!modelLoaded) {
                         ModelRenderable.builder()
@@ -199,7 +208,64 @@ public class MainActivity extends AppCompatActivity implements
                                 .setIsFilamentGltf(true)
                                 .setAsyncLoadEnabled(true)
                                 .build()
-                                .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchor));
+                                .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchor, new Vector3(0.1f, 0.1f, 0.1f)));
+
+                        modelLoaded = true;
+                    }
+                    break;
+                case "building_0":
+                    if (!notifyImgTracked){
+                        Toast.makeText(getApplicationContext(), "Byggnad QR", Toast.LENGTH_SHORT).show();
+                        notifyImgTracked = true;
+                    }
+
+                    anchor = augmentedImage.createAnchor(augmentedImage.getCenterPose());
+
+                    if(!modelLoaded) {
+                        ModelRenderable.builder()
+                                .setSource(this, Uri.parse("models/byggnad.glb"))
+                                .setIsFilamentGltf(true)
+                                .setAsyncLoadEnabled(true)
+                                .build()
+                                .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchor, new Vector3(0.003f, 0.003f, 0.003f)));
+
+                        modelLoaded = true;
+                    }
+                    break;
+                case "small_building":
+                    if (!notifyImgTracked){
+                        Toast.makeText(getApplicationContext(), "Liten byggnad QR", Toast.LENGTH_SHORT).show();
+                        notifyImgTracked = true;
+                    }
+
+                    anchor = augmentedImage.createAnchor(augmentedImage.getCenterPose());
+
+                    if(!modelLoaded) {
+                        ModelRenderable.builder()
+                                .setSource(this, Uri.parse("models/small_building.glb"))
+                                .setIsFilamentGltf(true)
+                                .setAsyncLoadEnabled(true)
+                                .build()
+                                .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchor, new Vector3(0.003f, 0.003f, 0.003f)));
+
+                        modelLoaded = true;
+                    }
+                    break;
+                case "bee":
+                    if (!notifyImgTracked){
+                        Toast.makeText(getApplicationContext(), "Bi QR", Toast.LENGTH_SHORT).show();
+                        notifyImgTracked = true;
+                    }
+
+                    anchor = augmentedImage.createAnchor(augmentedImage.getCenterPose());
+
+                    if(!modelLoaded) {
+                        ModelRenderable.builder()
+                                .setSource(this, Uri.parse("models/bee.glb"))
+                                .setIsFilamentGltf(true)
+                                .setAsyncLoadEnabled(true)
+                                .build()
+                                .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchor, new Vector3(0.01f, 0.01f, 0.01f)));
 
                         modelLoaded = true;
                     }
