@@ -75,7 +75,8 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements
         FragmentOnAttachListener,
         BaseArFragment.OnSessionConfigurationListener,
-        BaseArFragment.OnTapArPlaneListener {
+        BaseArFragment.OnTapArPlaneListener,
+        BaseArFragment.OnAugmentedImageUpdateListener {
     //Button changeActBtn;
     //TextInputEditText modelLinkText;
     static final String ALIEN_LINK = "https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/Playground/scenes/Alien/Alien.gltf";
@@ -166,20 +167,7 @@ public class MainActivity extends AppCompatActivity implements
         buildDatabase(config);
 
         //Image detection
-        arFragment.setOnAugmentedImageUpdateListener(this::onAugmentedImageTrackingUpdate);
-    }
-
-    private void onTapArPlaneListener(HitResult hitResult, Plane plane, MotionEvent motionEvent) {
-        Anchor anchor = hitResult.createAnchor();
-        ModelRenderable.builder()
-                .setSource(this, Uri.parse("https://storage.googleapis.com/ar-answers-in-search-models/static/Tiger/model.glb"))
-                .setIsFilamentGltf(true)
-                .setAsyncLoadEnabled(true)
-                .build()
-                .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchor));
-    }
-
-    private void onAugmentedImageTrackingUpdate(AugmentedImage augmentedImage) {
+        arFragment.setOnAugmentedImageUpdateListener(this);
     }
 
     @Override
@@ -191,5 +179,32 @@ public class MainActivity extends AppCompatActivity implements
                 .setAsyncLoadEnabled(true)
                 .build()
                 .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchor));
+    }
+
+    @Override
+    public void onAugmentedImageTrackingUpdate(AugmentedImage augmentedImage) {
+        if(augmentedImage.getTrackingState() == TrackingState.TRACKING) {
+            switch (augmentedImage.getName()) {
+                case "lion":
+                    if (!notifyImgTracked){
+                        Toast.makeText(getApplicationContext(), "Lion QR", Toast.LENGTH_SHORT).show();
+                        notifyImgTracked = true;
+                    }
+
+                    Anchor anchor = augmentedImage.createAnchor(augmentedImage.getCenterPose());
+
+                    if(!modelLoaded) {
+                        ModelRenderable.builder()
+                                .setSource(this, Uri.parse("https://storage.googleapis.com/ar-answers-in-search-models/static/Tiger/model.glb"))
+                                .setIsFilamentGltf(true)
+                                .setAsyncLoadEnabled(true)
+                                .build()
+                                .thenAccept(modelRenderable -> addModelToScene(modelRenderable, anchor));
+
+                        modelLoaded = true;
+                    }
+                    break;
+            }
+        }
     }
 }
